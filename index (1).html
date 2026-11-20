@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CleanWave</title>
+<style>
+:root { --tinta:#eafffa; --suave:#a3c9c3; --linea:rgba(45,232,197,.22); --pista:rgba(255,255,255,.1); --t1:#2de8c5; --t2:#0a9fb0; --oscuro:#02231f; --fondo:#031a1c; --bien:#5df0cf; --mal:#ff9a8a; }
+* { box-sizing:border-box; }
+html { color-scheme:dark; background:var(--fondo); scroll-behavior:smooth; }
+body { margin:0; background:var(--fondo); color:var(--tinta); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-variant-numeric:tabular-nums; line-height:1.45; }
+a { color:inherit; }
+.ancho { max-width:1120px; margin:0 auto; padding:0 20px; }
+button { font:inherit; color:inherit; cursor:pointer; }
+button:focus-visible, a:focus-visible { outline:2px solid #fff; outline-offset:3px; }
+
+/* Barra superior */
+#barra { position:sticky; top:0; z-index:5; background:rgba(3,26,28,.86); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--linea); }
+#barra .ancho { display:flex; align-items:center; justify-content:space-between; height:56px; gap:16px; }
+.logo { display:flex; align-items:center; gap:9px; font-size:18px; font-weight:800; text-decoration:none; }
+.logo svg { width:26px; height:26px; }
+#barra nav { display:flex; gap:22px; font-size:15px; }
+#barra nav a { text-decoration:none; color:var(--suave); }
+#barra nav a:hover { color:var(--tinta); }
+
+/* Presentacion */
+#inicio { background:radial-gradient(ellipse at 75% 40%, #0b5b55 0, #063a37 35%, var(--fondo) 75%); overflow:hidden; }
+#inicio .ancho { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; min-height:calc(100vh - 56px); padding-top:40px; padding-bottom:40px; }
+.intro { animation:entrada .9s ease-out both; }
+.intro h1 { margin:0; font-size:clamp(40px,6vw,72px); line-height:1.02; font-weight:800; letter-spacing:-.02em; }
+.intro h1 span { display:block; background:linear-gradient(100deg,var(--t1),#7ff5e0 45%,var(--t2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.intro p { max-width:30em; margin:22px 0 0; font-size:19px; color:var(--suave); }
+.acciones { display:flex; flex-wrap:wrap; gap:12px; margin-top:30px; }
+.boton { display:inline-block; padding:14px 22px; border-radius:10px; font-weight:700; font-size:16px; text-decoration:none; border:1px solid var(--linea); }
+.boton.lleno { background:linear-gradient(120deg,var(--t1),var(--t2)); color:var(--oscuro); border-color:transparent; }
+#escena { position:relative; height:min(78vh,620px); }
+#boya { width:100%; height:100%; display:block; touch-action:pan-y; cursor:grab; }
+#boya:active { cursor:grabbing; }
+.ayuda { position:absolute; bottom:6px; left:0; right:0; text-align:center; font-size:13px; color:var(--suave); }
+@keyframes entrada { from { opacity:0; transform:translateY(18px); } }
+
+/* Secciones */
+section.bloque { padding:84px 0; }
+.titulo h2 { margin:0; font-size:clamp(30px,4vw,44px); line-height:1.1; letter-spacing:-.01em; }
+.titulo p { margin:12px 0 0; max-width:40em; font-size:17px; color:var(--suave); }
+
+/* Carrusel */
+#problema { background:#04201f; }
+.carrusel { position:relative; margin-top:36px; border-radius:18px; overflow:hidden; border:1px solid var(--linea); background:#021514; }
+.pista { display:flex; transition:transform .6s cubic-bezier(.3,.7,.2,1); }
+.lamina { flex:0 0 100%; display:grid; grid-template-columns:1.35fr 1fr; min-height:420px; }
+.lamina svg { width:100%; height:100%; display:block; min-height:280px; }
+.texto { padding:34px 84px 34px 32px; display:flex; flex-direction:column; justify-content:center; }
+.lugar { font-size:15px; color:var(--t1); font-weight:600; }
+.texto h3 { margin:6px 0 14px; font-size:32px; line-height:1.1; }
+.texto p { margin:0; font-size:17px; color:var(--suave); }
+.nota { margin-top:18px; font-size:12px; color:#6f948e; }
+.flecha { position:absolute; top:50%; width:48px; height:48px; margin-top:-24px; border-radius:50%; border:1px solid rgba(255,255,255,.35); background:rgba(2,21,20,.7); display:grid; place-items:center; }
+.flecha svg { width:22px; height:22px; }
+#anterior { left:14px; } #siguiente { right:14px; }
+.puntos { display:flex; justify-content:center; gap:8px; margin-top:18px; }
+.puntos button { width:10px; height:10px; padding:0; border-radius:5px; border:0; background:rgba(255,255,255,.25); transition:width .3s; }
+.puntos button[aria-current=true] { width:28px; background:var(--t1); }
+
+/* En vivo */
+#estado { display:flex; align-items:center; gap:14px; margin-top:28px; padding:16px 20px; border-radius:14px; background:linear-gradient(120deg,var(--t1),var(--t2)); color:var(--oscuro); }
+#estado.alerta { background:linear-gradient(120deg,#ff8a6b,#d9412a); color:#2a0700; }
+#estado.gris { background:#183635; color:var(--tinta); }
+#luz { flex:none; width:14px; height:14px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(255,255,255,.55); }
+#titulo { font-size:20px; font-weight:800; }
+#detalle { font-size:15px; font-weight:500; }
+#medidas { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:16px; }
+.medida { min-width:0; padding:16px 14px 15px; border:1px solid var(--linea); border-radius:16px; background:linear-gradient(180deg,rgba(45,232,197,.08),rgba(255,255,255,.02)); }
+.nombre { font-size:15px; font-weight:600; }
+.valor { margin-top:6px; font-size:34px; font-weight:800; line-height:1; white-space:nowrap; }
+.valor small { font-size:14px; font-weight:500; color:var(--suave); }
+.arco { display:block; width:100%; max-width:240px; margin:10px auto 0; }
+.arco text { fill:var(--tinta); font-size:17px; font-weight:700; text-anchor:middle; }
+.fondo-arco, .lleno { fill:none; stroke-width:11; }
+.fondo-arco { stroke:var(--pista); }
+.lleno { stroke:url(#degrade); transition:stroke-dasharray .5s; }
+.limite { stroke:#fff; stroke-width:2; }
+.estado { font-size:13px; line-height:1.3; margin-top:6px; }
+.estado b { font-weight:700; } .estado .si { color:var(--bien); } .estado .no { color:var(--mal); }
+.rango { font-size:12px; color:var(--suave); margin-top:3px; }
+.viejo .valor, .viejo .arco { opacity:.4; }
+#info { font-size:13px; color:var(--suave); margin:14px 0 0; }
+
+/* Historial */
+#historial { background:#04201f; }
+.panel { margin-top:30px; padding:22px; border:1px solid var(--linea); border-radius:18px; background:#031a1c; }
+.controles { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; }
+.grupo { display:flex; gap:6px; flex-wrap:wrap; }
+.grupo button { padding:9px 14px; border:1px solid var(--linea); border-radius:8px; background:transparent; font-size:14px; font-weight:600; }
+.grupo button[aria-pressed=true] { background:linear-gradient(120deg,var(--t1),var(--t2)); border-color:transparent; color:var(--oscuro); }
+#marco { position:relative; margin-top:18px; }
+#grafico { display:block; width:100%; height:280px; touch-action:pan-y; }
+#grafico text { fill:var(--suave); font-size:12px; }
+#globo { position:absolute; top:0; right:0; font-size:14px; font-weight:600; }
+#vacio { padding:110px 0; text-align:center; color:var(--suave); display:none; }
+.leyenda { display:flex; flex-wrap:wrap; gap:18px; margin-top:8px; font-size:13px; color:var(--suave); }
+.leyenda i { display:inline-block; width:18px; height:0; margin-right:6px; vertical-align:middle; border-top:2px solid var(--t1); }
+.leyenda i.t { border-top:2px dashed #fff; } .leyenda i.m { border-top:2px dotted #ffd479; }
+.leyenda i.b { height:10px; border:0; background:rgba(45,232,197,.18); }
+#resumen { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:20px; }
+#resumen div { padding:12px 14px; border-radius:12px; background:rgba(255,255,255,.04); }
+#resumen span { display:block; font-size:13px; color:var(--suave); }
+#resumen b { font-size:22px; }
+.registro { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid var(--linea); }
+.registro .aviso { margin-right:auto; max-width:30em; font-size:14px; color:var(--suave); }
+.registro button { padding:10px 14px; border-radius:8px; border:1px solid var(--linea); background:transparent; font-size:14px; font-weight:600; }
+#cuenta { width:100%; font-size:13px; color:var(--suave); }
+
+/* Creditos y pie */
+#creditos { padding:46px 0 34px; text-align:center; font-size:13px; color:var(--suave); }
+#creditos p { margin:0; }
+footer { background:linear-gradient(120deg,#0a7f7a,#06504d); }
+footer .ancho { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px; padding-top:28px; padding-bottom:28px; }
+.contactos { display:flex; flex-wrap:wrap; gap:26px; }
+.contactos a { display:flex; align-items:center; gap:10px; text-decoration:none; font-weight:600; font-size:16px; }
+.contactos svg { width:24px; height:24px; }
+.contactos small { display:block; font-weight:400; font-size:12px; color:#bfe9e2; }
+
+@media (max-width:860px) {
+  #barra nav { display:none; }
+  #inicio .ancho { grid-template-columns:1fr; min-height:0; padding-top:36px; }
+  #escena { height:360px; }
+  .lamina { grid-template-columns:1fr; }
+  .lamina svg { min-height:230px; height:230px; }
+  .texto { padding:22px 22px 30px; }
+  .texto h3 { font-size:26px; }
+  .flecha { top:115px; }
+  #medidas { grid-template-columns:1fr 1fr; gap:10px; }
+  .valor { font-size:28px; }
+  #resumen { grid-template-columns:1fr 1fr; }
+  section.bloque { padding:60px 0; }
+  .panel { padding:16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } html { scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="degrade" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="108" y2="0"><stop offset="0" stop-color="#0a9fb0"/><stop offset="1" stop-color="#2de8c5"/></linearGradient></defs></svg>
+
+<header id="barra">
+  <div class="ancho">
+    <a class="logo" href="#inicio"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="url(#degrade)"/><path d="M5 15c2.7-2.6 5.3-2.6 8 0s5.3 2.6 8 0" fill="none" stroke="#02231f" stroke-width="2.4" stroke-linecap="round"/></svg>CleanWave</a>
+    <nav><a href="#problema">El problema</a><a href="#vivo">En vivo</a><a href="#historial">Historial</a><a href="#contacto">Contacto</a></nav>
+  </div>
+</header>
+
+<section id="inicio">
+  <div class="ancho">
+    <div class="intro">
+      <h1>CleanWave <span>monitoreo del agua</span></h1>
+      <p>Una boya con sensores de pH, temperatura, turbidez y sólidos disueltos que mide la calidad del agua y envía los datos por LoRa, en tiempo real.</p>
+      <div class="acciones">
+        <a class="boton lleno" href="#vivo">Ver datos en vivo</a>
+        <a class="boton" href="#problema">Conocer el problema</a>
+      </div>
+    </div>
+    <div id="escena">
+      <canvas id="boya" aria-label="Modelo 3D de la boya CleanWave"></canvas>
+      <div class="ayuda">Arrastrá la boya para girarla</div>
+    </div>
+  </div>
+</section>
+
+<section id="problema" class="bloque">
+  <div class="ancho">
+    <div class="titulo">
+      <h2>El agua que nos rodea</h2>
+      <p>Ríos y lagos de todo el mundo reciben desechos industriales, cloacales y plásticos. Medir su calidad de forma continua es el primer paso para cuidarlos.</p>
+    </div>
+    <div class="carrusel" aria-roledescription="carrusel">
+      <div class="pista" id="pista"></div>
+      <button class="flecha" id="anterior" aria-label="Foto anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="flecha" id="siguiente" aria-label="Foto siguiente"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="puntos" id="puntos"></div>
+  </div>
+</section>
+
+<section id="vivo" class="bloque">
+  <div class="ancho">
+    <div class="titulo">
+      <h2>Datos en tiempo real</h2>
+      <p>Lo que mide la boya ahora, actualizado cada 10 segundos. Cada semicírculo muestra dónde está el valor dentro de la escala del sensor, y las rayitas blancas marcan el rango correcto.</p>
+    </div>
+    <div id="estado" class="gris"><span id="luz"></span><div><div id="titulo">Conectando con el receptor</div><div id="detalle"></div></div></div>
+    <div id="medidas" aria-label="Valores actuales"></div>
+    <p id="info"></p>
+  </div>
+</section>
+
+<section id="historial" class="bloque">
+  <div class="ancho">
+    <div class="titulo">
+      <h2>Historial y tendencias</h2>
+      <p>Mirá cómo cambió cada medición, la línea de tendencia y los momentos que marcaste. Cualquier persona que entre a la página ve el mismo historial.</p>
+    </div>
+    <div class="panel">
+      <div class="controles">
+        <div class="grupo" id="pestanas" aria-label="Medición"></div>
+        <div class="grupo" id="lapsos" aria-label="Período"></div>
+      </div>
+      <div id="marco">
+        <div id="globo"></div>
+        <svg id="grafico" role="img" aria-label="Historial de la medición elegida"></svg>
+        <div id="vacio">El gráfico aparece cuando lleguen al menos dos mediciones en este período.</div>
+      </div>
+      <div class="leyenda"><span><i></i>Medición</span><span><i class="t"></i>Tendencia</span><span><i class="b"></i>Rango correcto</span><span><i class="m"></i>Marcas</span></div>
+      <div id="resumen"></div>
+      <div class="registro">
+        <span class="aviso">El historial se guarda en la nube, una medición por minuto. Las marcas quedan guardadas solo en este dispositivo.</span>
+        <button id="marcar">Marcar este momento</button>
+        <button id="bajar">Descargar CSV</button>
+        <button id="borrar">Borrar mis marcas</button>
+        <div id="cuenta"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="creditos">
+  <div class="ancho">
+    <p>Proyecto desarrollado por los alumnos Lautaro Epelbaum, Federico Andrusiw, Santiago Amorin, Lucas Kearney y Leonel Fanello.</p>
+  </div>
+</section>
+
+<footer id="contacto">
+  <div class="ancho">
+    <a class="logo" href="#inicio"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="#eafffa"/><path d="M5 15c2.7-2.6 5.3-2.6 8 0s5.3 2.6 8 0" fill="none" stroke="#0a7f7a" stroke-width="2.4" stroke-linecap="round"/></svg>CleanWave</a>
+    <div class="contactos">
+      <a href="https://www.instagram.com/cleanwave_26" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="#fff" stroke-width="2"/><circle cx="17.3" cy="6.7" r="1.2" fill="#fff"/></svg><span><small>Instagram</small>@cleanwave_26</span></a>
+      <a href="tel:+5491166206992"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5l2.6.3 1.3 4-2 1.6a12 12 0 0 0 6.1 6.1l1.6-2 4 1.3.3 2.6c0 1.3-1.1 2.3-2.4 2.2C10.6 19.2 4.8 13.4 4.4 5.9 4.3 4.6 5.3 3.5 6.6 3.5z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg><span><small>Teléfono</small>11 6620-6992</span></a>
+    </div>
+  </div>
+</footer>
+
+<script>
+var FIREBASE = "https://cleanwave-26-8001e-default-rtdb.firebaseio.com/";
+var $ = function (id) { return document.getElementById(id); };
+var quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function guardarLocal(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function leerLocal(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+
+/* ===== Boya 3D ===== */
+(function () {
+  var cv = $("boya"), cx = cv.getContext("2d");
+  var N = 40, giro = .6, vel = .35, arrastre = null, CARAS = [];
+  // Pieza de revolucion: perfil [radio, altura] recorrido de abajo hacia arriba
+  function torno(perfil, color, luz, encima) {
+    for (var j = 0; j < perfil.length - 1; j++) for (var i = 0; i < N; i++) {
+      var v = [[j, i], [j, i + 1], [j + 1, i + 1], [j + 1, i]].map(function (k) {
+        var a = k[1] / N * Math.PI * 2, r = perfil[k[0]][0];
+        return [r * Math.cos(a), perfil[k[0]][1], r * Math.sin(a)];
+      });
+      CARAS.push({ v:v, c:color, luz:luz, encima:encima && perfil[j][1] >= -.02 });
+    }
+  }
+  // Caja: x, y, z minimos y maximos
+  function caja(x0, x1, y0, y1, z0, z1, color) {
+    var P = function (x, y, z) { return [x, y, z]; };
+    [[[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[0,0,-1]], [[x1,y0,z1],[x0,y0,z1],[x0,y1,z1],[x1,y1,z1],[0,0,1]],
+     [[x0,y0,z1],[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[-1,0,0]], [[x1,y0,z0],[x1,y0,z1],[x1,y1,z1],[x1,y1,z0],[1,0,0]],
+     [[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1],[0,1,0]], [[x0,y0,z1],[x1,y0,z1],[x1,y0,z0],[x0,y0,z0],[0,-1,0]]]
+      .forEach(function (f) { CARAS.push({ v:f.slice(0, 4), n:f[4], c:color, claro:true, encima:true }); });
+  }
+  // Cano negro (en tramos cortos para que se dibuje bien)
+  var cano = [[0,-1.66],[.07,-1.64],[.11,-1.6],[.12,-1.54]];
+  for (var y = -1.4; y < 1.42; y += .14) cano.push([.12, y]);
+  cano.push([.12, 1.42], [.145, 1.42], [.145, 1.5], [.12, 1.51]);
+  torno(cano, [44,48,54], false, true);
+  // Flotador naranja (dona aplastada alrededor del cano)
+  var dona = [];
+  for (var k = 0; k <= 24; k++) { var t = -Math.PI / 2 + k / 24 * Math.PI * 2; dona.push([.535 + .41 * Math.cos(t), -.02 + .3 * Math.sin(t)]); }
+  torno(dona, [255,138,52]);
+  // Luz roja arriba
+  torno([[.12,1.51],[.13,1.63],[.11,1.68],[0,1.69]], [255,72,66], true, true);
+  // Caja blanca de la electronica, pegada al frente del cano
+  caja(-.19, .19, .92, 1.26, -.3, -.11, [246,248,250]);
+  caja(-.14, .14, .97, 1.21, -.315, -.3, [228,233,236]);
+  caja(-.08, -.02, .85, .92, -.24, -.18, [200,206,210]);
+  caja(.02, .08, .85, .92, -.24, -.18, [200,206,210]);
+
+  function girar(p, inc) {
+    var c = Math.cos(giro), s = Math.sin(giro), x = p[0] * c - p[2] * s, z = p[0] * s + p[2] * c, y = p[1];
+    return [x, y * Math.cos(inc) - z * Math.sin(inc), y * Math.sin(inc) + z * Math.cos(inc)];
+  }
+  function dibujar(t) {
+    var w = cv.clientWidth, h = cv.clientHeight, d = devicePixelRatio || 1;
+    if (cv.width != w * d) { cv.width = w * d; cv.height = h * d; }
+    cx.setTransform(d, 0, 0, d, 0, 0); cx.clearRect(0, 0, w, h);
+    var s = Math.min(w, h) * .3, ox = w / 2, oy = h * .6;
+    var alto = quieto ? 0 : Math.sin(t * 1.3) * .04, inc = .13 + (quieto ? 0 : Math.sin(t * .9) * .035);
+    var proy = function (q) { var f = 3.4 / (3.4 + q[2]); return [ox + q[0] * s * f, oy - q[1] * s * f]; };
+    var lista = [];
+    CARAS.forEach(function (f) {
+      var p = f.v.map(function (v) { return girar([v[0], v[1] + alto, v[2]], inc); }), nx, ny, nz;
+      if (f.n) { var n = girar(f.n, inc); nx = n[0]; ny = n[1]; nz = n[2]; }
+      else {
+        var ux = p[1][0] - p[0][0], uy = p[1][1] - p[0][1], uz = p[1][2] - p[0][2];
+        var vx = p[2][0] - p[0][0], vy = p[2][1] - p[0][1], vz = p[2][2] - p[0][2];
+        nx = uy * vz - uz * vy; ny = uz * vx - ux * vz; nz = ux * vy - uy * vx;
+        var l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+      }
+      if (nz > 0.02) return;
+      var luz = Math.max(0, -(nx * -.45 + ny * .6 + nz * -.66)), brillo = Math.pow(Math.max(0, -nz * .7 + ny * .5), 12) * .35;
+      lista.push({ p:p, z:(p[0][2] + p[1][2] + p[2][2] + p[3][2]) / 4 - (f.encima ? 5 : 0), k:f.luz ? 1 : f.claro ? .7 + .3 * luz : .45 + .55 * luz, b:f.luz ? 0 : brillo, c:f.c });
+    });
+    lista.sort(function (a, b) { return b.z - a.z; });
+    lista.forEach(function (f) {
+      cx.beginPath();
+      f.p.forEach(function (q, n) { var P = proy(q); n ? cx.lineTo(P[0], P[1]) : cx.moveTo(P[0], P[1]); });
+      cx.closePath();
+      var c = f.c.map(function (v) { return Math.min(255, Math.round(v * f.k + 255 * f.b)); });
+      cx.fillStyle = cx.strokeStyle = "rgb(" + c + ")"; cx.lineWidth = .7; cx.fill(); cx.stroke();
+    });
+    // Cables (solo si la caja mira hacia adelante)
+    if (girar([0, 0, -.2], inc)[2] < 0) {
+      cx.strokeStyle = "#b08250"; cx.lineWidth = Math.max(2, s * .025); cx.lineCap = "round";
+      [-.045, .045].forEach(function (x0, k) {
+        var a = proy(girar([x0, .85 + alto, -.21], inc)), b = proy(girar([.02, .55 + alto, -.22], inc));
+        var c = proy(girar([.24 + k * .04, .36 + alto, -.2], inc)), e = proy(girar([.15 + k * .03, .62 + alto, -.18], inc));
+        cx.beginPath(); cx.moveTo(a[0], a[1]); cx.bezierCurveTo(b[0], b[1], c[0], c[1], e[0], e[1]); cx.stroke();
+      });
+      var g1 = proy(girar([-.13, .7 + alto, -.13], inc)), g2 = proy(girar([.13, .7 + alto, -.13], inc));
+      cx.strokeStyle = "#9aa3a8"; cx.lineWidth = Math.max(2, s * .03); cx.beginPath(); cx.moveTo(g1[0], g1[1]); cx.lineTo(g2[0], g2[1]); cx.stroke();
+    }
+    // Brillo de la luz roja (titila)
+    var L = proy(girar([0, 1.62 + alto, 0], inc)), on = quieto || Math.sin(t * 3) > -.3;
+    if (on) { cx.globalCompositeOperation = "lighter"; var gl = cx.createRadialGradient(L[0], L[1], 0, L[0], L[1], s * .55); gl.addColorStop(0, "rgba(255,70,60,.45)"); gl.addColorStop(1, "rgba(255,60,60,0)"); cx.fillStyle = gl; cx.fillRect(L[0] - s, L[1] - s, s * 2, s * 2); cx.globalCompositeOperation = "source-over"; }
+    // Agua
+    var nivel = oy + s * .02;
+    var g = cx.createLinearGradient(0, nivel, 0, h); g.addColorStop(0, "rgba(10,159,176,.5)"); g.addColorStop(1, "rgba(3,26,28,.95)");
+    cx.fillStyle = g; cx.beginPath(); cx.moveTo(0, h);
+    for (var x = 0; x <= w; x += 8) cx.lineTo(x, nivel + Math.sin(x / 38 + t * 1.6) * 5 + Math.sin(x / 17 - t) * 2);
+    cx.lineTo(w, h); cx.closePath(); cx.fill();
+    cx.strokeStyle = "rgba(127,245,224,.6)"; cx.lineWidth = 1.5; cx.beginPath();
+    for (x = 0; x <= w; x += 8) { var Y = nivel + Math.sin(x / 38 + t * 1.6) * 5 + Math.sin(x / 17 - t) * 2; x ? cx.lineTo(x, Y) : cx.moveTo(x, Y); }
+    cx.stroke();
+    // Bordes suaves
+    var m = cx.createRadialGradient(ox, oy, Math.min(w, h) * .48, ox, oy, Math.max(w, h) * .72);
+    m.addColorStop(0, "#000"); m.addColorStop(1, "rgba(0,0,0,0)");
+    cx.globalCompositeOperation = "destination-in"; cx.fillStyle = m; cx.fillRect(0, 0, w, h);
+    cx.globalCompositeOperation = "source-over";
+  }
+  var t0 = performance.now();
+  function ciclo(ahora) {
+    var t = (ahora - t0) / 1000;
+    if (!arrastre && !quieto) giro += vel * .016;
+    dibujar(t);
+    if (!quieto) requestAnimationFrame(ciclo);
+  }
+  cv.addEventListener("pointerdown", function (e) { arrastre = { x:e.clientX, g:giro }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", function (e) { if (arrastre) { giro = arrastre.g - (e.clientX - arrastre.x) / 90; if (quieto) dibujar(0); } });
+  cv.addEventListener("pointerup", function () { arrastre = null; });
+  addEventListener("resize", function () { if (quieto) dibujar(0); });
+  requestAnimationFrame(ciclo);
+})();
+
+/* ===== Carrusel ===== */
+var LUGARES = [
+  { lugar:"Buenos Aires, Argentina", nombre:"Riachuelo", texto:"Durante más de un siglo recibió desechos industriales y cloacales. Es uno de los ríos más contaminados de América Latina y su saneamiento sigue en marcha.", agua:["#3b3a2c","#1f2119"], cielo:["#8b95a0","#c7c2b4"], costa:"fabricas", cosas:"basura" },
+  { lugar:"Java Occidental, Indonesia", nombre:"Río Citarum", texto:"Fábricas textiles y basura doméstica terminan en sus aguas. Es nombrado a menudo entre los ríos más contaminados del mundo.", agua:["#4b5a3a","#29301f"], cielo:["#b9c2b0","#e4dcc4"], costa:"casas", cosas:"plastico" },
+  { lugar:"India", nombre:"Río Ganges", texto:"Abastece a millones de personas, pero recibe aguas residuales sin tratar de muchas ciudades a lo largo de su recorrido.", agua:["#6b6650","#3a3829"], cielo:["#d9b98c","#f0dcc0"], costa:"templos", cosas:"espuma" },
+  { lugar:"Zulia, Venezuela", nombre:"Lago de Maracaibo", texto:"Los derrames de petróleo y los vertidos favorecen que el verdín cubra grandes superficies del lago.", agua:["#24403a","#101c1a"], cielo:["#7fa3ae","#c9d8d4"], costa:"torres", cosas:"petroleo" },
+  { lugar:"Jiangsu, China", nombre:"Lago Taihu", texto:"En 2007 una floración de algas dejó sin agua potable a cerca de dos millones de habitantes de la ciudad de Wuxi.", agua:["#3f7a2c","#1f4a18"], cielo:["#a9c3c9","#dfe9e4"], costa:"colinas", cosas:"algas" }
+];
+function azar(sem) { return function () { sem = (sem * 9301 + 49297) % 233280; return sem / 233280; }; }
+function escena(L, n) {
+  var r = azar(n * 77 + 13), s = '<svg viewBox="0 0 640 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">';
+  s += '<defs><linearGradient id="c' + n + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + L.cielo[0] + '"/><stop offset="1" stop-color="' + L.cielo[1] + '"/></linearGradient>';
+  s += '<linearGradient id="a' + n + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + L.agua[0] + '"/><stop offset="1" stop-color="' + L.agua[1] + '"/></linearGradient></defs>';
+  s += '<rect width="640" height="420" fill="url(#c' + n + ')"/>';
+  var col = "rgba(40,48,52,.55)", i, x;
+  if (L.costa == "fabricas") { for (i = 0; i < 6; i++) { x = 30 + i * 105; s += '<rect x="' + x + '" y="' + (150 - i % 3 * 18) + '" width="70" height="' + (60 + i % 3 * 18) + '" fill="' + col + '"/><rect x="' + (x + 50) + '" y="' + (95 - i % 2 * 20) + '" width="11" height="' + (120 + i % 2 * 20) + '" fill="' + col + '"/><ellipse cx="' + (x + 60) + '" cy="' + (78 - i % 2 * 20) + '" rx="26" ry="11" fill="rgba(120,120,115,.35)"/>'; } }
+  if (L.costa == "casas") { for (i = 0; i < 12; i++) { x = i * 55; var hh = 30 + r() * 40; s += '<rect x="' + x + '" y="' + (210 - hh) + '" width="48" height="' + hh + '" fill="rgba(' + (90 + r() * 60 | 0) + ',' + (70 + r() * 40 | 0) + ',60,.7)"/>'; } }
+  if (L.costa == "templos") { for (i = 0; i < 5; i++) { x = 40 + i * 130; s += '<rect x="' + x + '" y="150" width="90" height="60" fill="rgba(150,105,70,.7)"/><path d="M' + (x + 20) + ' 150L' + (x + 45) + ' 100L' + (x + 70) + ' 150Z" fill="rgba(150,105,70,.8)"/>'; } s += '<rect x="0" y="198" width="640" height="14" fill="rgba(160,120,80,.8)"/>'; }
+  if (L.costa == "torres") { s += '<rect x="0" y="196" width="640" height="14" fill="rgba(60,80,80,.5)"/>'; for (i = 0; i < 4; i++) { x = 70 + i * 160; s += '<path d="M' + x + ' 210L' + (x + 14) + ' 120L' + (x + 28) + ' 210" fill="none" stroke="' + col + '" stroke-width="4"/><path d="M' + (x + 4) + ' 180H' + (x + 24) + 'M' + (x + 8) + ' 150H' + (x + 20) + '" stroke="' + col + '" stroke-width="3"/>'; } }
+  if (L.costa == "colinas") { s += '<path d="M0 210Q120 120 240 190T480 170T640 190V215H0Z" fill="rgba(70,100,90,.55)"/>'; }
+  s += '<rect y="208" width="640" height="212" fill="url(#a' + n + ')"/>';
+  for (i = 0; i < 14; i++) { var y = 225 + i * 14; s += '<path d="M0 ' + y + 'Q160 ' + (y - 4) + ' 320 ' + y + 'T640 ' + y + '" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="2"/>'; }
+  var colores = ["#e8e2d0", "#c94a3b", "#3f7cc0", "#e0b23a", "#f2f2f2", "#5aa36b"];
+  if (L.cosas == "basura" || L.cosas == "plastico") {
+    var cant = L.cosas == "plastico" ? 140 : 55;
+    for (i = 0; i < cant; i++) { var y2 = 220 + Math.pow(r(), .7) * 190, e = .4 + (y2 - 210) / 170; x = r() * 640;
+      s += '<rect x="' + x.toFixed(0) + '" y="' + y2.toFixed(0) + '" width="' + (6 + r() * 14) * e + '" height="' + (3 + r() * 6) * e + '" rx="2" fill="' + colores[i % 6] + '" opacity=".85" transform="rotate(' + (r() * 40 - 20).toFixed(0) + ' ' + x.toFixed(0) + ' ' + y2.toFixed(0) + ')"/>'; } }
+  if (L.cosas == "espuma") { for (i = 0; i < 40; i++) s += '<ellipse cx="' + (r() * 640).toFixed(0) + '" cy="' + (225 + r() * 185).toFixed(0) + '" rx="' + (12 + r() * 40).toFixed(0) + '" ry="' + (3 + r() * 7).toFixed(0) + '" fill="rgba(240,236,220,.55)"/>'; }
+  if (L.cosas == "petroleo") {
+    for (i = 0; i < 7; i++) s += '<ellipse cx="' + (r() * 640).toFixed(0) + '" cy="' + (240 + r() * 160).toFixed(0) + '" rx="' + (50 + r() * 80).toFixed(0) + '" ry="' + (10 + r() * 16).toFixed(0) + '" fill="rgba(140,90,200,.22)" stroke="rgba(230,190,90,.35)" stroke-width="3"/>';
+    for (i = 0; i < 90; i++) s += '<circle cx="' + (r() * 640).toFixed(0) + '" cy="' + (215 + Math.pow(r(), .8) * 200).toFixed(0) + '" r="' + (3 + r() * 10).toFixed(1) + '" fill="rgba(120,170,60,.65)"/>'; }
+  if (L.cosas == "algas") { for (i = 0; i < 26; i++) s += '<ellipse cx="' + (r() * 640).toFixed(0) + '" cy="' + (225 + r() * 185).toFixed(0) + '" rx="' + (30 + r() * 70).toFixed(0) + '" ry="' + (6 + r() * 14).toFixed(0) + '" fill="rgba(140,215,60,.45)"/>'; }
+  return s + "</svg>";
+}
+var actual = 0;
+LUGARES.forEach(function (L, n) {
+  $("pista").insertAdjacentHTML("beforeend", '<div class="lamina" role="group" aria-label="' + (n + 1) + ' de ' + LUGARES.length + '">' + escena(L, n) +
+    '<div class="texto"><div class="lugar">' + L.lugar + '</div><h3>' + L.nombre + '</h3><p>' + L.texto + '</p><div class="nota">Ilustración</div></div></div>');
+  var b = document.createElement("button"); b.setAttribute("aria-label", "Ir a " + L.nombre); b.onclick = function () { ir(n); }; $("puntos").appendChild(b);
+});
+function ir(n) {
+  actual = (n + LUGARES.length) % LUGARES.length;
+  $("pista").style.transform = "translateX(" + (-100 * actual) + "%)";
+  [].forEach.call($("puntos").children, function (b, k) { b.setAttribute("aria-current", k == actual); });
+}
+$("anterior").onclick = function () { ir(actual - 1); };
+$("siguiente").onclick = function () { ir(actual + 1); };
+(function () { var x0 = null; var p = $("pista");
+  p.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive:true });
+  p.addEventListener("touchend", function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) ir(actual + (dx < 0 ? 1 : -1)); x0 = null; });
+})();
+ir(0);
+
+/* ===== Datos en vivo ===== */
+var MEDIDAS = [
+  { nombre:"pH", corto:"pH", unidad:"", dec:2, min:6.5, max:8.5, de:0, a:14, alto:"pH alto", bajo:"pH bajo", ta:"Alto", tb:"Bajo", txt:"6,5 a 8,5" },
+  { nombre:"Temperatura", corto:"Temp.", unidad:"°C", dec:1, min:10, max:25, de:0, a:40, alto:"temperatura alta", bajo:"temperatura baja", ta:"Alta", tb:"Baja", txt:"10 a 25 °C" },
+  { nombre:"Turbidez", corto:"Turbidez", unidad:"%", dec:1, min:0, max:20, de:0, a:100, alto:"turbidez alta", bajo:"turbidez baja", ta:"Alta", tb:"Baja", txt:"hasta 20 %" },
+  { nombre:"Sólidos disueltos", corto:"Sólidos", unidad:"mV", dec:0, min:0, max:909, de:0, a:2500, alto:"sólidos disueltos altos", bajo:"sólidos disueltos bajos", ta:"Altos", tb:"Bajos", txt:"hasta nivel 2" }
+];
+var NIVELES = ["", "limpia", "aceptable", "moderada", "alta", "muy alta"];
+var SIN_SENAL = 90, ultimoT = 0;
+function coma(v, d) { return v.toFixed(d).replace(".", ","); }
+
+MEDIDAS.forEach(function (m, i) {
+  var marca = function (v) {
+    var g = Math.PI * (1 - (v - m.de) / (m.a - m.de)), c = Math.cos(g), n = Math.sin(g);
+    return '<line class="limite" x1="' + (60 + 41 * c).toFixed(1) + '" y1="' + (62 - 41 * n).toFixed(1) + '" x2="' + (60 + 55 * c).toFixed(1) + '" y2="' + (62 - 55 * n).toFixed(1) + '"/>';
+  };
+  var ARCO = 'd="M12 62A48 48 0 0 1 108 62" pathLength="100"';
+  $("medidas").insertAdjacentHTML("beforeend",
+    '<div class="medida"><div class="nombre">' + m.nombre + '</div><div class="valor"><span id="v' + i + '">--</span> <small>' + m.unidad +
+    '</small></div><svg class="arco" viewBox="0 0 120 66" aria-hidden="true"><path class="fondo-arco" ' + ARCO + '/><path class="lleno" id="m' + i + '" ' + ARCO + ' stroke-dasharray="0 100"/>' +
+    (m.min > m.de ? marca(m.min) : "") + marca(m.max) + '<text x="60" y="60" id="p' + i + '">--</text></svg><div class="estado" id="e' + i + '">Sin datos</div><div class="rango">Rango: ' + m.txt + "</div></div>");
+});
+
+function cartel(clase, titulo, detalle) { $("estado").className = clase; $("titulo").textContent = titulo; $("detalle").textContent = detalle; }
+
+function tarjeta(i, v, d) {
+  var m = MEDIDAS[i], e = $("e" + i);
+  if (i == 1 && v <= -100) {
+    $("v" + i).textContent = "--"; $("m" + i).setAttribute("stroke-dasharray", "0 100"); $("p" + i).textContent = "--";
+    e.innerHTML = '<b class="no">▲</b> Sensor desconectado';
+    return "temperatura sin sensor";
+  }
+  $("v" + i).textContent = coma(v, m.dec);
+  var p = Math.max(0, Math.min(100, 100 * (v - m.de) / (m.a - m.de)));
+  $("m" + i).setAttribute("stroke-dasharray", p + " 100");
+  $("p" + i).textContent = Math.round(p) + "%";
+  var f = i == 3 ? (d.nivel > 2 ? "alto" : "") : v < m.min ? "bajo" : v > m.max ? "alto" : "";
+  var nivel = i == 3 ? " (nivel " + d.nivel + ": " + NIVELES[d.nivel] + ")" : "";
+  e.innerHTML = f ? '<b class="no">' + (f == "alto" ? "▲" : "▼") + "</b> " + (f == "alto" ? m.ta : m.tb) + nivel : '<b class="si">✓</b> En rango' + nivel;
+  return f ? (f == "alto" ? m.alto : m.bajo) : "";
+}
+
+function tiempo(s) { return s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : Math.round(s / 3600) + " h"; }
+
+async function actualizar() {
+  try {
+    var r = await fetch(FIREBASE + "actual.json", { cache:"no-store" });
+    if (!r.ok) throw new Error(r.status);
+    var d = await r.json();
+    if (!d || !d.t) { cartel("gris", "Esperando datos de la boya", "Todavía no se subió ninguna medición. Revisá que el receptor esté encendido y con internet."); return; }
+    d.edad = Math.max(0, Math.round((Date.now() - d.t) / 1000));
+    var malos = [d.ph, d.temp, d.turb, d.mv].map(function (v, i) { return tarjeta(i, v, d); }).filter(Boolean);
+    var viejo = d.edad > SIN_SENAL;
+    $("medidas").className = viejo ? "viejo" : "";
+    if (viejo) cartel("gris", "Sin datos nuevos de la boya", "Último dato hace " + tiempo(d.edad) + ". Puede que el receptor esté apagado o sin internet.");
+    else if (d.estado === "OK") cartel("", "Agua en condiciones", "Las cuatro mediciones están en rango.");
+    else { var t = malos.join(", "); cartel("alerta", "Agua fuera de parámetros", t ? (t.indexOf("pH") == 0 ? t : t.charAt(0).toUpperCase() + t.slice(1)) + "." : "La boya marcó una alerta."); }
+    var senal = d.rssi >= -90 ? "fuerte" : d.rssi >= -110 ? "media" : "débil";
+    $("info").textContent = "Último dato hace " + tiempo(d.edad) + ". Señal LoRa " + senal + " (" + d.rssi + " dBm).";
+    if (d.t !== ultimoT) { ultimoT = d.t; agregar(d.t, [d.ph, d.temp, d.turb, d.mv]); dibujar(); }
+  } catch (e) {
+    cartel("gris", "No se pudo leer la base de datos", "Revisá tu conexión a internet y recargá la página.");
+  }
+}
+
+/* ===== Historial y tendencias ===== */
+var registro = [], marcas = leerLocal("cleanwave-marcas", []), elegida = 0, lapso = 2, puntos = [];
+var LAPSOS = [["15 min", 900], ["1 hora", 3600], ["24 h", 86400], ["7 días", 604800]];
+
+function agregar(t, v) {
+  if (registro.length && t <= registro[registro.length - 1].t + 1500) return;
+  registro.push({ t:t, v:v });
+}
+async function traerHistorial() {
+  try {
+    var url = FIREBASE + "historial.json?orderBy=" + encodeURIComponent('"$key"') + "&limitToLast=10080";
+    var h = (await (await fetch(url, { cache:"no-store" })).json()) || {};
+    registro = Object.keys(h).map(function (k) { return h[k]; })
+      .filter(function (x) { return x && x.t && x.v; })
+      .sort(function (a, b) { return a.t - b.t; });
+  } catch (e) {}
+  dibujar();
+}
+
+function botones(id, nombres, activo, alElegir) {
+  nombres.forEach(function (n, i) {
+    var b = document.createElement("button"); b.textContent = n; b.setAttribute("aria-pressed", i == activo);
+    b.onclick = function () { [].forEach.call($(id).children, function (x, k) { x.setAttribute("aria-pressed", k == i); }); alElegir(i); dibujar(); };
+    $(id).appendChild(b);
+  });
+}
+botones("pestanas", MEDIDAS.map(function (m) { return m.corto; }), 0, function (i) { elegida = i; });
+botones("lapsos", LAPSOS.map(function (l) { return l[0]; }), 2, function (i) { lapso = i; });
+
+function hora(t) { var d = new Date(t); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+
+function dibujar() {
+  var svg = $("grafico"), m = MEDIDAS[elegida], W = svg.clientWidth || 340, H = 280, L = 44, R = 10, T = 14, B = 26;
+  var desde = LAPSOS[lapso][1] ? Date.now() - LAPSOS[lapso][1] * 1000 : 0;
+  var datos = registro.filter(function (r) { return r.t >= desde && r.v[elegida] > -100; });
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  var poco = datos.length < 2;
+  $("vacio").style.display = poco ? "block" : "none"; svg.style.display = poco ? "none" : "block"; $("globo").textContent = "";
+  $("cuenta").textContent = registro.length + " mediciones cargadas de la nube (últimos 7 días).";
+  resumen(datos, m);
+  puntos = [];
+  if (poco) return;
+  var t0 = datos[0].t, t1 = datos[datos.length - 1].t; if (t1 == t0) t1 = t0 + 1;
+  var bajo = m.min, alto = m.max;
+  datos.forEach(function (r) { bajo = Math.min(bajo, r.v[elegida]); alto = Math.max(alto, r.v[elegida]); });
+  var pad = (alto - bajo) * .08 || 1; bajo = Math.max(m.de, bajo - pad); alto += pad;
+  var x = function (t) { return L + (W - L - R) * (t - t0) / (t1 - t0); };
+  var y = function (v) { return T + (H - T - B) * (1 - (v - bajo) / (alto - bajo)); };
+  var s = '<rect x="' + L + '" y="' + y(m.max) + '" width="' + (W - L - R) + '" height="' + (y(m.min) - y(m.max)) + '" fill="#2de8c5" opacity=".13"/>';
+  for (var k = 0; k <= 4; k++) { var v = bajo + (alto - bajo) * k / 4, yy = y(v);
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(255,255,255,.07)"/><text x="' + (L - 6) + '" y="' + (yy + 4) + '" text-anchor="end">' + coma(v, m.dec > 1 ? 1 : 0) + "</text>"; }
+  s += '<text x="' + L + '" y="' + (H - 6) + '">' + hora(t0) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end">' + hora(t1) + "</text>";
+  marcas.forEach(function (mk) { if (mk.t < t0 || mk.t > t1) return; var mx = x(mk.t);
+    s += '<line x1="' + mx + '" x2="' + mx + '" y1="' + T + '" y2="' + (H - B) + '" stroke="#ffd479" stroke-dasharray="2 4" stroke-width="2"/><text x="' + (mx + 4) + '" y="' + (T + 12) + '" style="fill:#ffd479">' + mk.nota.replace(/[<&]/g, "") + "</text>"; });
+  var linea = "";
+  datos.forEach(function (r, i) { var px = x(r.t), py = y(r.v[elegida]); puntos.push({ x:px, y:py, r:r }); linea += (i ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1); });
+  s += '<path d="' + linea + '" fill="none" stroke="var(--t1)" stroke-width="2" stroke-linejoin="round"/>';
+  var tr = tendencia(datos);
+  if (tr) s += '<line x1="' + x(t0) + '" y1="' + y(tr.a + tr.b * 0) + '" x2="' + x(t1) + '" y2="' + y(tr.a + tr.b * (t1 - t0) / 3600000) + '" stroke="#fff" stroke-width="2" stroke-dasharray="7 6" opacity=".85"/>';
+  var u = puntos[puntos.length - 1];
+  s += '<g id="cruz" style="display:none"><line id="cl" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--suave)"/><circle id="cc" r="5" fill="var(--t1)" stroke="#031a1c" stroke-width="2"/></g>';
+  s += '<circle cx="' + u.x + '" cy="' + u.y + '" r="4" fill="var(--t1)"/>';
+  svg.innerHTML = s;
+}
+
+function tendencia(datos) {
+  if (datos.length < 3) return null;
+  var t0 = datos[0].t, n = datos.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  datos.forEach(function (r) { var X = (r.t - t0) / 3600000, Y = r.v[elegida]; sx += X; sy += Y; sxx += X * X; sxy += X * Y; });
+  var den = n * sxx - sx * sx; if (!den) return null;
+  var b = (n * sxy - sx * sy) / den; return { a:(sy - b * sx) / n, b:b };
+}
+
+function resumen(datos, m) {
+  if (!datos.length) { $("resumen").innerHTML = ""; return; }
+  var vs = datos.map(function (r) { return r.v[elegida]; });
+  var mn = Math.min.apply(0, vs), mx = Math.max.apply(0, vs), pr = vs.reduce(function (a, b) { return a + b; }, 0) / vs.length;
+  var tr = tendencia(datos), txt = "Sin datos", det = "";
+  if (tr) {
+    var total = tr.b * (datos[datos.length - 1].t - datos[0].t) / 3600000;
+    if (Math.abs(total) < (m.a - m.de) * .01) txt = "→ Estable";
+    else txt = (tr.b > 0 ? "▲ Subiendo" : "▼ Bajando");
+    det = (tr.b > 0 ? "+" : "") + coma(tr.b, m.dec) + " " + m.unidad + " por hora";
+  }
+  var u = m.unidad ? " " + m.unidad : "";
+  $("resumen").innerHTML = '<div><span>Mínimo</span><b>' + coma(mn, m.dec) + u + '</b></div><div><span>Máximo</span><b>' + coma(mx, m.dec) + u +
+    '</b></div><div><span>Promedio</span><b>' + coma(pr, m.dec) + u + '</b></div><div><span>Tendencia</span><b>' + txt + '</b><span>' + det + "</span></div>";
+}
+
+function tocar(ev) {
+  if (!puntos.length) return;
+  var r = $("grafico").getBoundingClientRect(), px = ev.clientX - r.left, mejor = puntos[0];
+  puntos.forEach(function (p) { if (Math.abs(p.x - px) < Math.abs(mejor.x - px)) mejor = p; });
+  var m = MEDIDAS[elegida];
+  $("cruz").style.display = "";
+  $("cl").setAttribute("x1", mejor.x); $("cl").setAttribute("x2", mejor.x);
+  $("cc").setAttribute("cx", mejor.x); $("cc").setAttribute("cy", mejor.y);
+  $("globo").textContent = coma(mejor.r.v[elegida], m.dec) + " " + m.unidad + " a las " + hora(mejor.r.t);
+}
+$("grafico").addEventListener("pointermove", tocar);
+$("grafico").addEventListener("pointerdown", tocar);
+
+$("marcar").onclick = function () {
+  var nota = prompt("Escribí una nota corta para esta marca (por ejemplo: lluvia, limpieza, cambio de lugar):", "");
+  if (nota === null) return;
+  marcas.push({ t:Date.now(), nota:(nota || "Marca").slice(0, 24) }); guardarLocal("cleanwave-marcas", marcas); dibujar();
+};
+$("borrar").onclick = function () {
+  if (!confirm("¿Borrar las marcas guardadas en este dispositivo? El historial de la nube no se borra.")) return;
+  marcas = []; guardarLocal("cleanwave-marcas", []); dibujar();
+};
+$("bajar").onclick = function () {
+  var t = "fecha,hora,ph,temperatura_c,turbidez_pct,tds_mv\n" + registro.map(function (r) {
+    var d = new Date(r.t); return d.toLocaleDateString("es-AR") + "," + d.toLocaleTimeString("es-AR") + "," + r.v.join(","); }).join("\n");
+  if (marcas.length) t += "\n\nmarcas\nfecha,hora,nota\n" + marcas.map(function (k) { var d = new Date(k.t); return d.toLocaleDateString("es-AR") + "," + d.toLocaleTimeString("es-AR") + "," + k.nota; }).join("\n");
+  var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([t], { type:"text/csv" })); a.download = "cleanwave-registro.csv"; a.click();
+};
+
+traerHistorial();
+actualizar();
+setInterval(actualizar, 5000);
+setInterval(traerHistorial, 300000);
+addEventListener("resize", dibujar);
+dibujar();
+</script>
+</body>
+</html>
